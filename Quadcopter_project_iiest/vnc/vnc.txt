@@ -1,0 +1,69 @@
+https://www.raspberrypi.org/documentation/remote-access/vnc/
+
+http://www.penguintutor.com/raspberrypi/tightvnc
+
+instructions
+------------
+1.first get updates
+	sudo apt-get update
+
+2.install tightvnc
+	sudo apt-get install tightvncserver
+
+3.Start server and configure a password
+	/usr/bin/tightvncserver
+
+password is 8 char long so eg is: 
+	raspberr
+
+no need for a view only password
+
+When the server starts it will tell you which virtual desktop has been setup. In this case:
+New 'X' desktop is raspberrypi:1
+says that it's virtual desktop 1. You would connect to this using :1 at the end of the IP address in the client,
+this is the one we will setup to start automatically later.
+
+4.Adding Tightvnc to systemd startup
+	sudo nano /etc/systemd/system/tightvncserver.service
+
+copy the following and paste
+----------------------------------
+
+[Unit]
+Description=TightVNC remote desktop server
+After=sshd.service
+ 
+[Service]
+Type=dbus
+ExecStart=/usr/bin/tightvncserver :1
+User=pi
+Type=forking
+ 
+[Install]
+WantedBy=multi-user.target
+
+
+------------------------------------
+You may need to change the user name on line 8. It is currently set to pi which is the default 
+username on the Raspberry Pi Raspbian image. Set this to whatever username you want to login to TightVNC as. 
+Do not put root as the user.
+
+5.Change the file so it is owned by root
+	sudo chown root:root /etc/systemd/system/tightvncserver.service
+
+6.Make the file executable by running
+	sudo chmod 755 /etc/systemd/system/tightvncserver.service
+
+7.It's a good idea to test the script at this point rather than waiting until after a reboot. This is done using:
+	sudo systemctl start tightvncserver.service
+
+Don't worry if you get the following error message, which is because you've already started tightvnc
+A VNC server is already running as :1
+
+8.Enable startup at boot using
+	sudo systemctl enable tightvncserver.service
+
+
+
+
+

@@ -1,0 +1,5 @@
+sudo apt-get install pigpio python-pigio python3-pigpio
+
+always start with sudo pigpiod
+
+pigpio follows bcm numbering

@@ -1,0 +1,13 @@
+sudo git clone https://github.com/silvanmelchior/RPi_Cam_Web_Interface.git
+
+cd RPi_Cam_Web_Interface
+
+sudo chmod u+x *.sh
+
+sudo ./install.sh
+
+sudo ./start.sh
+
+open your web browser to enter your pi's ip address
+
+you will see the streaming video
