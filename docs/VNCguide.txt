@@ -2,7 +2,7 @@ https://www.raspberrypi.org/documentation/remote-access/vnc/
 
 http://www.penguintutor.com/raspberrypi/tightvnc
 
-instructions
+Instructions
 ------------
 1.first get updates
 	sudo apt-get update
@@ -62,7 +62,6 @@ A VNC server is already running as :1
 
 8.Enable startup at boot using
 	sudo systemctl enable tightvncserver.service
-
 
 
 

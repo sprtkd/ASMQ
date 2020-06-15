@@ -30,24 +30,6 @@ tiltservo=16#BCM PIN NUMBER equivalent to BOARD 36
 #globals-------
 
 
-#mpu globals----
-bus = smbus.SMBus(1)
-now = time.time()
-angvelerrorz=0.0
-x_error=2.0
-y_error=5.0
-angle_x=0.0
-angle_y=0.0
-linacc_x=0.0
-linacc_y=0.0
-angularVelocity_z=0.0
-last_x=0.0
-last_y=0.0
-gyro_scale = 131.0
-accel_scale = 16384.0
-address = 0x68  # This is the address value read via the i2cdetect command
-#mpu globals----
-
 #sonar globals-----
 sonarHeightOffset=12.5 #in cm for calibration of quad height for zero correction
 quadHeight=0 #in cm
@@ -236,8 +218,8 @@ def acromodeChange():
 #updatesensorsvalues-------
 def updatesensors():
     altVar.set(str(round(quadHeight)))
-    rollVar.set(str(round(angle_y)))
-    pitchVar.set(str(round(angle_x)))
+    rollVar.set(str(round(angle_x)))
+    pitchVar.set(str(round(angle_y)))
     yawVar.set(str(round(angularVelocity_z)))
     xAcclVar.set(str(round(linacc_x)))
     yAcclVar.set(str(round(linacc_y)))
@@ -328,13 +310,15 @@ def autoLandfunc():
 #calibrate-----
 def EscCalfunc():
     quadRelaySet(0)
-    time.sleep(2)
+    print("Press enter to start esc calibrate....\n")
+    resultlocal=raw_input()
     pi.set_servo_pulsewidth(esc_pinH, 2000)
     pi.set_servo_pulsewidth(esc_pinL, 2000)
     pi.set_servo_pulsewidth(esc_pinR, 2000)
     pi.set_servo_pulsewidth(esc_pinT, 2000)
     quadRelaySet(1)
-    time.sleep(2.5)    
+    print("Press enter when music stops...\n")
+    resultlocal=raw_input()    
     pi.set_servo_pulsewidth(esc_pinH, 1000)#zero throttle
     pi.set_servo_pulsewidth(esc_pinL, 1000)#zero throttle
     pi.set_servo_pulsewidth(esc_pinR, 1000)#zero throttle
@@ -395,120 +379,7 @@ def quadRelaySet(mode):
     
 
 #relay-----
-
-#mpu6050-------
-
-#mpu-init-----
-def mpuinit():
-    global now
-    global last_x
-    global last_y
-    global angvelerrorz
-    power_mgmt_1 = 0x6b
-    power_mgmt_2 = 0x6c
-    bus.write_byte_data(address, power_mgmt_1, 0)
-    now = time.time()
-    (gyro_scaled_x, gyro_scaled_y, gyro_scaled_z, accel_scaled_x, accel_scaled_y, accel_scaled_z) = read_all()
-
-    last_x = get_x_rotation(accel_scaled_x, accel_scaled_y, accel_scaled_z)
-    last_y = get_y_rotation(accel_scaled_x, accel_scaled_y, accel_scaled_z)
-    angvelerrorz=gyro_scaled_z
-#mpu-init-----
-#accesory functions-----
-def read_all():
-    raw_gyro_data = bus.read_i2c_block_data(address, 0x43, 6)
-    raw_accel_data = bus.read_i2c_block_data(address, 0x3b, 6)
-
-    gyro_scaled_x = twos_compliment((raw_gyro_data[0] << 8) + raw_gyro_data[1]) / gyro_scale
-    gyro_scaled_y = twos_compliment((raw_gyro_data[2] << 8) + raw_gyro_data[3]) / gyro_scale
-    gyro_scaled_z = twos_compliment((raw_gyro_data[4] << 8) + raw_gyro_data[5]) / gyro_scale
-
-    accel_scaled_x = twos_compliment((raw_accel_data[0] << 8) + raw_accel_data[1]) / accel_scale
-    accel_scaled_y = twos_compliment((raw_accel_data[2] << 8) + raw_accel_data[3]) / accel_scale
-    accel_scaled_z = twos_compliment((raw_accel_data[4] << 8) + raw_accel_data[5]) / accel_scale
-
-    return (gyro_scaled_x, gyro_scaled_y, gyro_scaled_z, accel_scaled_x, accel_scaled_y, accel_scaled_z)
-    
-def twos_compliment(val):
-    if (val >= 0x8000):
-        return -((65535 - val) + 1)
-    else:
-        return val
-
-def dist(a, b):
-    return math.sqrt((a * a) + (b * b))
-
-
-def get_y_rotation(x,y,z):
-    radians = math.atan2(x, dist(y,z))
-    return -math.degrees(radians)
-
-def get_x_rotation(x,y,z):
-    radians = math.atan2(y, dist(x,z))
-    return math.degrees(radians)
-
-def calibrateMpu():
-    global angvelerrorz
-    global x_error
-    global y_error
-    global last_x
-    global last_y
-    print("Keep your quad straight and still.\nPress enter to continue....")
-    raw_input()
-    (gyro_scaled_x, gyro_scaled_y, gyro_scaled_z, accel_scaled_x, accel_scaled_y, accel_scaled_z) = read_all()
-    x_error = get_x_rotation(accel_scaled_x, accel_scaled_y, accel_scaled_z)
-    y_error = get_y_rotation(accel_scaled_x, accel_scaled_y, accel_scaled_z)
-    mpuinit()
-    print("Calibration complete..")
-    
-#accesory functions-----
-#function
-
-def updateMpu6050():
-    global now
-    global angle_x
-    global angle_y
-    global linacc_x
-    global linacc_y
-    global angularVelocity_z
-    global last_x
-    global last_y
-
-
-    k = 0.85
-    k1 = 1 - k
-    dtime = 0
-    (gyro_scaled_x, gyro_scaled_y, gyro_scaled_z, accel_scaled_x, accel_scaled_y, accel_scaled_z) = read_all()
-    
-    rotation_x = get_x_rotation(accel_scaled_x, accel_scaled_y, accel_scaled_z)
-    rotation_y = get_y_rotation(accel_scaled_x, accel_scaled_y, accel_scaled_z)
-
-    dtime=time.time()-now
-    
-    now=time.time()
-    
-    last_x=(k*(last_x+(gyro_scaled_x*dtime)))+(k1*rotation_x)
-    last_y=(k*(last_y+(gyro_scaled_x*dtime)))+(k1*rotation_y)
-
-
-    angle_x=-(last_x-x_error)
-    angle_y=-(last_y-y_error)
-    
-    linacc_x=(accel_scaled_x-(math.sin(math.radians(angle_y))))*9.81#m/s^2
-    linacc_y=(accel_scaled_y+(math.sin(math.radians(angle_x))))*9.81#m/s^2
-    
-    
-    
-    
-    angularVelocity_z=-(gyro_scaled_z-angvelerrorz)
-
-
-
-
-
-#mpu6050-------
-
-    
+  
 #sonar----
 
 def updateSonar():
@@ -750,9 +621,9 @@ def pid():
     if (IsAcromode.get()==0):
         
         ##  pid constants
-        rkp=1
-        pkp=1
-        ykp=0
+        rkp=1.5
+        pkp=1.5
+        ykp=0.8
         rki=0
         pki=0
         yki=0
@@ -762,16 +633,16 @@ def pid():
 
         #mapping mappedangle_x,mappedangle_y,ZangularvelMapped pid with angle_x ,angle_y,angularVelocity_z
         if (angularVelocity_z>0):
-            Zthreshold=5
+            Zthreshold=10
         elif (angularVelocity_z<0):
-            Zthreshold=-5
+            Zthreshold=-10
         else:
             Zthreshold=0
         
         ZangularvelMapped=(angularVelocity_z-Zthreshold)*(50.0/240.0)
 
-        mappedangle_x=angle_x*(50.0/70.0)
-        mappedangle_y=angle_y*(50.0/70.0)
+        mappedangle_x=angle_x*(50.0/90.0)
+        mappedangle_y=angle_y*(50.0/90.0)
 
         ## taking roll as angle with X axis and pitch as the angle with Y axis
     
@@ -799,14 +670,29 @@ def pid():
         delroll=lastroll-mappedangle_x
         delpitch=lastpitch-mappedangle_y
         delyaw=lastyaw-ZangularvelMapped
-    
-        actualOutputRoll=rkp*rollerror+rolliterm+rkd*delroll
-        actualOutputPitch=pkp*pitcherror+pitchiterm+pkd*delpitch
-        actualOutputYaw=ykp*yawerror+yawiterm+ykd*delyaw
-    
         lastroll=mappedangle_x
         lastpitch=mappedangle_y
         lastyaw=ZangularvelMapped
+
+        if (actualOutputThrottle==0):
+            rollerror=0
+            pitcherror=0
+            yawerror=0
+            rolliterm=0
+            pitchiterm=0
+            yawiterm=0
+            delroll=0
+            delpitch=0
+            delyaw=0
+            lastroll=0
+            lastpitch=0
+            lastyaw=0
+    
+        actualOutputRoll=rkp*rollerror+rolliterm-rkd*delroll
+        actualOutputPitch=pkp*pitcherror+pitchiterm-pkd*delpitch
+        actualOutputYaw=ykp*yawerror+yawiterm-ykd*delyaw
+    
+        
 
     else:
         actualOutputRoll=mappedRoll
@@ -1082,6 +968,5 @@ while 1:
     changeAllMotorsThrottleFunc()
     
 #mainloop------
-
 
 
